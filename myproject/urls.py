@@ -1,7 +1,10 @@
+"""
+URL configuration for InstaReposter project.
+"""
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('api/reposter/', include('reposter.urls')),
+    path('', include('reposter.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
