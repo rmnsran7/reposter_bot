@@ -163,7 +163,8 @@
                                 <i class="bi bi-link-45deg me-1"></i> Instagram URL
                             </label>
                             <input type="url" class="form-control form-control-lg" id="instagramUrl" name="url"
-                                placeholder="https://www.instagram.com/reel/..." required autocomplete="off">
+                                placeholder="https://www.instagram.com/reel/..." required autocomplete="off"
+                                value="{{ prefill_link }}">
                             <div class="form-text text-secondary mt-2">
                                 Paste a link to any Instagram Post, Reel, or Video
                             </div>
@@ -308,6 +309,13 @@
             urlInput.value = '';
             urlInput.focus();
         });
+
+        // Auto-submit if ?auto=1 and link is provided
+        {% if auto_submit and prefill_link %}
+        window.addEventListener('load', () => {
+            form.dispatchEvent(new Event('submit'));
+        });
+        {% endif %}
     </script>
 </body>
 

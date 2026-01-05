@@ -13,7 +13,13 @@ from .tasks import process_instagram_repost
 
 def index(request):
     """Render the main page with the Instagram URL submission form."""
-    return render(request, 'reposter/index.html')
+    # Check for link in query params (e.g., /?link=https://instagram.com/...)
+    prefill_link = request.GET.get('link', '')
+    auto_submit = request.GET.get('auto', '') == '1'
+    return render(request, 'reposter/index.html', {
+        'prefill_link': prefill_link,
+        'auto_submit': auto_submit
+    })
 
 
 @csrf_exempt
