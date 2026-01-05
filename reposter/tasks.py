@@ -54,10 +54,10 @@ def process_instagram_repost(instagram_url):
         
         # Convert JSON cookies to Netscape format if JSON exists
         if os.path.exists(cookies_json):
-            import json
+            import json as json_module
             temp_cookies_file = os.path.join(temp_dir, f'{file_id}_cookies.txt')
             with open(cookies_json, 'r') as f:
-                cookies = json.load(f)
+                cookies = json_module.load(f)
             
             # Write Netscape format cookies file
             with open(temp_cookies_file, 'w') as f:
@@ -80,16 +80,64 @@ def process_instagram_repost(instagram_url):
         else:
             print(f"[InstaReposter] Warning: No cookies file found")
         
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(instagram_url, download=True)
-            file_extension = info.get('ext', 'mp4')
-            file_path = f"{temp_dir}/{file_id}.{file_extension}"
+        # Try to download with yt-dlp
+        is_video = False
+        caption = ''
+        
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(instagram_url, download=True)
+                file_extension = info.get('ext', 'mp4')
+                file_path = f"{temp_dir}/{file_id}.{file_extension}"
+                is_video = info.get('vcodec') != 'none' and info.get('vcodec') is not None
+                caption = info.get('description', '') or info.get('title', '')
+        except Exception as e:
+            error_msg = str(e)
+            print(f"[InstaReposter] yt-dlp video download failed: {error_msg}")
             
-            # Determine if video or image
-            is_video = info.get('vcodec') != 'none' and info.get('vcodec') is not None
-            
-            # Extract caption
-            caption = info.get('description', '') or info.get('title', '')
+            # If no video formats, try to get the image/thumbnail
+            if 'No video formats found' in error_msg or 'Unsupported URL' in error_msg:
+                print("[InstaReposter] Trying to download as image...")
+                
+                # Extract info without downloading to get thumbnail
+                ydl_opts_info = ydl_opts.copy()
+                ydl_opts_info['skip_download'] = True
+                
+                with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
+                    info = ydl.extract_info(instagram_url, download=False)
+                    caption = info.get('description', '') or info.get('title', '')
+                    
+                    # Get the thumbnail/image URL
+                    thumbnail_url = info.get('thumbnail')
+                    if not thumbnail_url:
+                        thumbnails = info.get('thumbnails', [])
+                        if thumbnails:
+                            thumbnail_url = thumbnails[-1].get('url')
+                    
+                    if not thumbnail_url:
+                        raise Exception("Could not find image URL for this post")
+                    
+                    # Download the image
+                    print(f"[InstaReposter] Downloading image from {thumbnail_url[:50]}...")
+                    response = requests.get(thumbnail_url, timeout=30)
+                    response.raise_for_status()
+                    
+                    # Determine extension from content-type or URL
+                    content_type = response.headers.get('content-type', '')
+                    if 'jpeg' in content_type or 'jpg' in content_type:
+                        file_extension = 'jpg'
+                    elif 'png' in content_type:
+                        file_extension = 'png'
+                    else:
+                        file_extension = 'jpg'  # Default to jpg
+                    
+                    file_path = f"{temp_dir}/{file_id}.{file_extension}"
+                    with open(file_path, 'wb') as f:
+                        f.write(response.content)
+                    
+                    is_video = False
+            else:
+                raise  # Re-raise if it's a different error
         
         # Verify file exists
         if not os.path.exists(file_path):
