@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security
 SECRET_KEY = config('SECRET_KEY', default='reposter-bot-secret-key-change-in-production')
 DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = ['*']  # Update for production
+ALLOWED_HOSTS = ['3.22.172.84', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
