@@ -41,11 +41,21 @@ def process_instagram_repost(instagram_url):
         # ========== STEP 1: DOWNLOAD MEDIA ==========
         print(f"[InstaReposter] Downloading from {instagram_url}")
         
+        # Check for cookies file
+        cookies_file = os.path.join(settings.BASE_DIR, 'cookies.txt')
+        
         ydl_opts = {
             'outtmpl': f'{temp_dir}/{file_id}.%(ext)s',
             'quiet': True,
             'no_warnings': True,
         }
+        
+        # Add cookies if file exists
+        if os.path.exists(cookies_file):
+            ydl_opts['cookiefile'] = cookies_file
+            print(f"[InstaReposter] Using cookies from {cookies_file}")
+        else:
+            print(f"[InstaReposter] Warning: No cookies.txt found at {cookies_file}")
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(instagram_url, download=True)
