@@ -41,8 +41,10 @@ def process_instagram_repost(instagram_url):
         # ========== STEP 1: DOWNLOAD MEDIA ==========
         print(f"[InstaReposter] Downloading from {instagram_url}")
         
-        # Check for cookies file
-        cookies_file = os.path.join(settings.BASE_DIR, 'cookies.txt')
+        # Check for cookies files (JSON or TXT)
+        cookies_json = os.path.join(settings.BASE_DIR, 'cookies.json')
+        cookies_txt = os.path.join(settings.BASE_DIR, 'cookies.txt')
+        temp_cookies_file = None
         
         ydl_opts = {
             'outtmpl': f'{temp_dir}/{file_id}.%(ext)s',
@@ -50,12 +52,33 @@ def process_instagram_repost(instagram_url):
             'no_warnings': True,
         }
         
-        # Add cookies if file exists
-        if os.path.exists(cookies_file):
-            ydl_opts['cookiefile'] = cookies_file
-            print(f"[InstaReposter] Using cookies from {cookies_file}")
+        # Convert JSON cookies to Netscape format if JSON exists
+        if os.path.exists(cookies_json):
+            import json
+            temp_cookies_file = os.path.join(temp_dir, f'{file_id}_cookies.txt')
+            with open(cookies_json, 'r') as f:
+                cookies = json.load(f)
+            
+            # Write Netscape format cookies file
+            with open(temp_cookies_file, 'w') as f:
+                f.write("# Netscape HTTP Cookie File\n")
+                for cookie in cookies:
+                    domain = cookie.get('domain', '')
+                    flag = 'TRUE' if domain.startswith('.') else 'FALSE'
+                    path = cookie.get('path', '/')
+                    secure = 'TRUE' if cookie.get('secure', False) else 'FALSE'
+                    expiry = int(cookie.get('expirationDate', 0))
+                    name = cookie.get('name', '')
+                    value = cookie.get('value', '')
+                    f.write(f"{domain}\t{flag}\t{path}\t{secure}\t{expiry}\t{name}\t{value}\n")
+            
+            ydl_opts['cookiefile'] = temp_cookies_file
+            print(f"[InstaReposter] Using cookies from {cookies_json}")
+        elif os.path.exists(cookies_txt):
+            ydl_opts['cookiefile'] = cookies_txt
+            print(f"[InstaReposter] Using cookies from {cookies_txt}")
         else:
-            print(f"[InstaReposter] Warning: No cookies.txt found at {cookies_file}")
+            print(f"[InstaReposter] Warning: No cookies file found")
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(instagram_url, download=True)
